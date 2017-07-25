@@ -1,0 +1,4 @@
+bedroom:
+  name: Bedroom
+  entities:
+    - light.lifx_bulb

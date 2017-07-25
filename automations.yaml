@@ -1,0 +1,18 @@
+- id: '1495627969738'
+  alias: Auto Renew SSL Cert
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.ssl_cert_expiry
+      below: 30
+  action:
+    - service: shell_command.renew_ssl
+- id: '1495627969739'
+  alias: Pool Lights
+  initial_state: off
+  trigger: 
+  - platform: template
+    value_template: '{{ states.sensor.time.state == states.sensor.alarm_time.state }}'
+  action:
+  - service: switch.turn_on
+    data:
+      entity_id: switch.pool_lights

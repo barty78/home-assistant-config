@@ -1,0 +1,214 @@
+homeassistant:
+  # Name of the location where Home Assistant is running
+  name: Home
+  # Location required to calculate the time the sun rises and sets
+  latitude: !secret home_latitude
+  longitude: !secret home_longitude
+  # Impacts weather/sunrise data (altitude above sea level in meters)
+  elevation: 22
+  # metric for Metric, imperial for Imperial
+  unit_system: metric
+  # Pick yours from here: http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  time_zone: Australia/Brisbane
+  
+  
+config:
+
+zone:
+  name: Home
+  latitude: !secret home_latitude
+  longitude: !secret home_longitude
+  radius: 20
+  icon: mdi:home
+zone 2:
+  name: Work
+  latitude: !secret work_latitude
+  longitude: !secret work_longitude
+  radius: 20
+  icon: mdi:worker
+zone 3:
+  name: Algester State School
+  latitude: !secret ass_latitude
+  longitude: !secret ass_longitude
+  radius: 250
+  icon: mdi:school
+zone 4:
+  name: Calamvale Community College
+  latitude: !secret ccc_latitude
+  longitude: !secret ccc_longitude
+  radius: 250
+  icon: mdi:school
+
+# Enables the frontend
+frontend:
+
+group:  
+  alarmclock:
+    name: Pool Light Timer
+    entities: 
+      - automation.pool_lights
+      - sensor.alarm_time
+      - input_slider.alarmhour
+      - input_slider.alarmminutes
+      - input_boolean.alarmweekday
+  media_view:
+    view: yes
+    name: Media
+    entities:
+      - media_player.yamaha_receiver
+      - media_player.yamaha_receiver_zone_2
+      - media_player.cast
+      - device_tracker.chromecast
+      - device_tracker.telstra_tv__366
+  garden_view:
+    view: yes
+    name: Garden
+    entities:
+      - sensor.water_tank
+      - sensor.tank_level
+  pool_view:
+    view: yes
+    name: Pool
+    entities:
+      - group.alarmclock
+  automations_view:
+    view: yes
+    name: Automations
+    entities:
+      - automation.pool_lights
+http:
+  # Uncomment this to add a password (recommended!)
+  api_password: !secret http_password
+  # Uncomment this if you are using SSL or running in Docker etc
+  ssl_certificate: !secret ssl_certificate
+  ssl_key: !secret ssl_key
+  base_url: !secret base_url
+  server_port: !secret server_port
+  login_attempts_threshold: 5
+
+automation: !include automations.yaml
+
+# Checks for available updates
+updater:
+
+# Discover some devices automatically
+discovery:
+
+# Allows you to issue voice commands from the frontend in enabled browsers
+conversation:
+
+# Enables support for tracking state changes over time.
+history:
+  exclude:
+    entities:
+      - sensor.time
+      - sensor.date
+      - sensor.date_time
+      - sensor.internet_time
+
+# View all events in a logbook
+logbook:
+  exclude:
+    entities:
+      - sensor.time
+      - sensor.date
+      - sensor.date_time
+      - sensor.internet_time
+
+# Track the sun
+sun:
+
+# Weather Prediction
+weather:
+  platform: bom
+  station: IDQ60901.94575
+  name: Archerfield Airport
+  monitored_conditions:
+    apparent_t
+    cloud
+    gust_kmh
+    dewpt
+    press
+    rain_trace
+    rel_hum
+    air_temp
+
+# Text to speech
+tts:
+  platform: google
+
+shell_command: 
+  renew_ssl: ./cert_renew.sh
+
+mqtt:
+  broker: !secret mqtt_ip
+  port: !secret mqtt_port
+  client_id: home-assistant-1
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+sensor:
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'time_date'
+      - 'time_utc'
+      - 'beat'
+  - platform: mqtt
+    state_topic: "tank/level"
+    name: "Water Tank"
+    unit_of_measurement: "%"
+  - platform: mqtt
+    state_topic: "sensor/message"
+    name: "Tank Level"
+    unit_of_measurement: "%"
+  - platform: command_line
+    name: SSL cert expiry
+    unit_of_measurement: days
+    scan_interval: 10800
+    command: "ssl-cert-check -b -c /etc/letsencrypt/live//barty.hopto.org/cert.pem | awk '{ print $NF }'"
+  - platform: template
+    sensors:
+      alarm_time:
+        friendly_name: 'Set Time'
+        value_template: '{{ "%0.02d:%0.02d" | format(states("input_slider.alarmhour") | int, states("input_slider.alarmminutes") | int) }}'
+device_tracker:
+  platform: unifi
+  username: homeassistant
+  password: homeassistant
+  verify_ssl: false
+media_player:
+  - platform: yamaha
+    source_names:
+      HDMI1: "HTPC"
+      HDMI2: "CAST"
+      HDMI3: "T-TV"
+      AV6:  "WII"
+  - platform: cast
+light:
+  platform: lifx
+switch:
+  platform: mqtt
+  name: Pool Lights
+  icon: mdi:lightbulb
+  state_topic: sonoff/channel-0/status
+  command_topic: sonoff/
+  payload_on: "on"
+  payload_off: "off"
+  optimistic: false
+  qos: 0
+  retain: true
+  
+logger:
+  default: error
+  logs:
+    requests.packages.urllib3.connectionpool: critical #for this item anything below error will not be logged
+    py.warnings: critical
+
+### Input Boolean ###
+# The input_boolean component allows the user to define boolean values that can be controlled via the frontend and can be used within conditions of automation.
+input_boolean: !include input_boolean.yaml
+
+### Input Slider ###
+input_slider: !include input_slider.yaml
